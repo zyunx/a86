@@ -8,56 +8,58 @@
 
 static char current_stmt[IDENT_MAX_LEN * 4];
 
-static int _isident(char c)
-{
-	return isalnum(c) || c == '_'; 
-}
-
+#define eatspace(p) while('\0' != *(p) && isspace(*(p))) (p)++
+#define spitspace(p, l) do {                 \
+	while ((l) != (p) && isspace(*(p))) (p)--; \
+	p++;                                       \
+} while(0)
 
 int next_instruction(struct instruction *pcurrent_inst)
 {
 	char *p_cur,   /* current parsation pos of the instruction */
-			 *p_prev;
+			 *p_left, *p_right, *p_tmp;
 
 	if (NULL == gets(current_stmt)) return 0;
 
 	p_cur = current_stmt;
-	while ('\0' != *p_cur && isspace(*p_cur)) p_cur++;
-	p_prev = p_cur;
+	eatspace(p_cur);
+	p_left = p_cur;
 
 	/* label or memonic */
-	while ('\0' != *p_cur && ' ' != *p_cur && '\t' != *p_cur
+	while ('\0' != *p_cur && !isspace(*p_cur)
 			&& ':' != *p_cur) p_cur++;
 
 	if (*p_cur == ':') {
 		/* label */
-		strncpy(pcurrent_inst->label, p_prev, p_cur - p_prev);
-		pcurrent_inst->label[p_cur - p_prev] = '\0';
+		p_right = p_cur - 1;
+		spitspace(p_right, p_left);
+		strncpy(pcurrent_inst->label, p_left, p_right - p_left);
+		pcurrent_inst->label[p_right - p_left] = '\0';
 		p_cur = p_cur + 1;
 
-		while ('\0' != *p_cur && (' ' == *p_cur || '\t' == *p_cur)) p_cur++;
-		p_prev = p_cur;
+		eatspace(p_cur);
+		p_left = p_cur;
 
-		while ('\0' != *p_cur && _isident(*p_cur)) p_cur++;
+		while ('\0' != *p_cur && !isspace(*p_cur)) p_cur++;
 	}
 
-
 	/* memonic */
-	if (p_prev != p_cur)
+	if (p_left != p_cur)
 	{
-		strncpy(pcurrent_inst->memonic, p_prev, p_cur - p_prev);
-		pcurrent_inst->memonic[p_cur - p_prev] = '\0';
+		p_right = p_cur;
+		strncpy(pcurrent_inst->memonic, p_left, p_right - p_left);
+		pcurrent_inst->memonic[p_right - p_left] = '\0';
 	} else {
 		printf("No memonic!!!\n");
 		exit(EXIT_FAILURE);
 	}
 
 	/* eat blank */
-	while ('\0' != *p_cur && isspace(*p_cur)) p_cur++;
-	p_prev = p_cur;
+	eatspace(p_cur);
+	p_left = p_cur;
 
-	while ('\0' != *p_cur && ';' != *p_cur)
-		p_cur++;
+	/* find comment begining char */
+	while ('\0' != *p_cur && ';' != *p_cur) p_cur++;
 
 	/* comment */
 	if (*p_cur == ';') {
@@ -68,42 +70,41 @@ int next_instruction(struct instruction *pcurrent_inst)
 	}
 
 	/* operands */
-	p_cur = p_prev;
+	p_cur = p_left;
 	while ('\0' != *p_cur 
-			&& ' ' != *p_cur && '\t' != *p_cur 
 			&& ',' != *p_cur)
 		p_cur++;
+
 	/* dest */
-	if (p_prev != p_cur) {
-		strncpy(pcurrent_inst->dest, p_prev, p_cur - p_prev);
-		pcurrent_inst->dest[p_cur - p_prev] = '\0';
+	if (*p_cur == ',') {
+		p_right = p_cur - 1;
+		spitspace(p_right, p_left);
+		strncpy(pcurrent_inst->dest, p_left, p_right - p_left);
+		pcurrent_inst->dest[p_right - p_left] = '\0';
 
-		while ('\0' != *p_cur && isspace(*p_cur)) p_cur++;
-		p_prev = p_cur;
+		p_cur++;
+		eatspace(p_cur);
+		p_left = p_cur;
 
+		while('\0' != *p_cur) p_cur++;
+		p_right = p_cur - 1 > p_left ? p_cur - 1 : p_left;
+		spitspace(p_right, p_left);
+	
 		/* src */
-		if (',' == *p_prev)
+		if (p_right != p_left)
 		{
-			p_cur = p_prev + 1;
-			while ('\0' != *p_cur && isspace(*p_cur)) p_cur++;
-			p_prev = p_cur;
-			while ('\0' != *p_cur && _isident(*p_cur)) p_cur++;
-			strncpy(pcurrent_inst->src, p_prev, p_cur - p_prev);
-			pcurrent_inst->src[p_cur - p_prev] = '\0';
-
-			while ('\0' != *p_cur && isspace(*p_cur)) p_cur++;
-			if ('\0' != *p_cur) {
-				printf("Syntax Error!!!\n");
-				exit(EXIT_FAILURE);
-			}
-		} else if ('\0' == *p_prev) {
-			pcurrent_inst->src[0] = '\0';
+			strncpy(pcurrent_inst->src, p_left, p_right - p_left);
+			pcurrent_inst->src[p_right - p_left] = '\0';
 		} else {
-			printf("Syntax Error!!!\n");
-			exit(EXIT_FAILURE);
+			pcurrent_inst->src[0] == '\0';
 		}
-	} else {
-		pcurrent_inst->dest[0] = '\0';
+
+	} else if (*p_cur == '\0') {
+		p_right = p_cur;
+		spitspace(p_right, p_left);
+		strncpy(pcurrent_inst->dest, p_left, p_right - p_left);
+		pcurrent_inst->dest[p_right - p_left] = '\0';
+
 		pcurrent_inst->src[0] = '\0';
 	}
 
