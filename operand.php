@@ -1,4 +1,3 @@
-#!/usr/local/bin/php
 <?php
 error_reporting(E_ALL);
 
@@ -12,62 +11,61 @@ $OPD_TYPE = array(
 // registers
 $REG = array(
 	// whole word
-	'AX' => 'AX',
-	'DX' => 'DX',
-	'CX' => 'CX',
-	'BX' => 'BX',
-	'SI' => 'SI',
-	'DI' => 'DI',
-	'BP' => 'BP',
-	'SP' => 'SP',
-
-	// hi-half
-	'AH' => 'AH',
-	'DH' => 'DH',
-	'CH' => 'CH',
-	'BH' => 'BH',
+	'AX' => array('reg' => '000', 'mod' => '11', 'rm' => '000', 'w' => '1'),
+	'CX' => array('reg' => '001', 'mod' => '11', 'rm' => '001', 'w' => '1'),
+	'DX' => array('reg' => '010', 'mod' => '11', 'rm' => '010', 'w' => '1'),
+	'BX' => array('reg' => '011', 'mod' => '11', 'rm' => '011', 'w' => '1'),
+	'SP' => array('reg' => '100', 'mod' => '11', 'rm' => '100', 'w' => '1'),
+	'BP' => array('reg' => '101', 'mod' => '11', 'rm' => '101', 'w' => '1'),
+	'SI' => array('reg' => '110', 'mod' => '11', 'rm' => '110', 'w' => '1'),
+	'DI' => array('reg' => '111', 'mod' => '11', 'rm' => '111', 'w' => '1'),
 	// lo-half
-	'AL' => 'AL',
-	'DL' => 'DL',
-	'CL' => 'CL',
-	'BL' => 'BL',
+	'AL' => array('reg' => '000', 'mod' => '11', 'rm' => '000', 'w' => '0'),
+	'CL' => array('reg' => '001', 'mod' => '11', 'rm' => '001', 'w' => '0'),
+	'DL' => array('reg' => '010', 'mod' => '11', 'rm' => '010', 'w' => '0'),
+	'BL' => array('reg' => '011', 'mod' => '11', 'rm' => '011', 'w' => '0'),
+	// hi-half
+	'AH' => array('reg' => '100', 'mod' => '11', 'rm' => '100', 'w' => '0'),
+	'CH' => array('reg' => '101', 'mod' => '11', 'rm' => '101', 'w' => '0'),
+	'DH' => array('reg' => '110', 'mod' => '11', 'rm' => '110', 'w' => '0'),
+	'BH' => array('reg' => '111', 'mod' => '11', 'rm' => '111', 'w' => '0'),
 );
 
 $SEGREG = array(
-	'DS' => 'DS',
-	'ES' => 'ES',
-	'SS' => 'SS',
-	'CS' => 'CS',
+	'DS' => array('sr' => '11'),
+	'ES' => array('sr' => '00'),
+	'SS' => array('sr' => '10'),
+	'CS' => array('sr' => '01'),
 );
 
 $MEM = array(
-	'BX_SI' => 'BX_SI',
-	'BX_DI' => 'BX_DI',
-	'BP_SI' => 'BP_SI',
-	'BP_DI' => 'BP_DI',
-	'SI' => 'SI',
-	'DI' => 'DI',
-	'DIRECT' => 'DIRECT',
-	'BX' => 'BX',
-	
-	'BX_SI_D8' => 'BX_SI_D8',
-	'BX_DI_D8' => 'BX_DI_D8',
-	'BP_SI_D8' => 'BP_SI_D8',
-	'BP_DI_D8' => 'BP_DI_D8',
-	'SI_D8' => 'SI_D8',
-	'DI_D8' => 'DI_D8',
-	'BP_D8' => 'BP_D8',
-	'BX_D8' => 'BX_D8',
-
-	'BX_SI_D16' => 'BX_SI_D16',
-	'BX_DI_D16' => 'BX_DI_D16',
-	'BP_SI_D16' => 'BP_SI_D16',
-	'BP_DI_D16' => 'BP_DI_D16',
-	'SI_D16' => 'SI_D16',
-	'DI_D16' => 'DI_D16',
-	'BP_D16' => 'BP_D16',
-	'BX_D16' => 'BX_D16',
-
+	// mod == '00'
+	'BX_SI' => array('mod' => '00', 'rm' => '000'),
+	'BX_DI' => array('mod' => '00', 'rm' => '001'),
+	'BP_SI' => array('mod' => '00', 'rm' => '010'),
+	'BP_DI' => array('mod' => '00', 'rm' => '011'),
+	'SI' =>    array('mod' => '00', 'rm' => '100'),
+	'DI' =>    array('mod' => '00', 'rm' => '101'),
+	'DIRECT' => array('mod' => '00', 'rm' => '110'),
+	'BX' =>    array('mod' => '00', 'rm' => '111'),
+	// mod == '01'
+	'BX_SI_D8' => array('mod' => '01', 'rm' => '000'),
+	'BX_DI_D8' => array('mod' => '01', 'rm' => '001'),
+	'BP_SI_D8' => array('mod' => '01', 'rm' => '010'),
+	'BP_DI_D8' => array('mod' => '01', 'rm' => '011'),
+	'SI_D8' => array('mod' => '01', 'rm' => '100'),
+	'DI_D8' => array('mod' => '01', 'rm' => '101'),
+	'BP_D8' => array('mod' => '01', 'rm' => '110'),
+	'BX_D8' => array('mod' => '01', 'rm' => '111'),
+	// mod == '10'
+	'BX_SI_D16' => array('mod' => '10', 'rm' => '000'),
+	'BX_DI_D16' => array('mod' => '10', 'rm' => '001'),
+	'BP_SI_D16' => array('mod' => '10', 'rm' => '010'),
+	'BP_DI_D16' => array('mod' => '10', 'rm' => '011'),
+	'SI_D16' => array('mod' => '10', 'rm' => '100'),
+	'DI_D16' => array('mod' => '10', 'rm' => '101'),
+	'BP_D16' => array('mod' => '10', 'rm' => '110'),
+	'BX_D16' => array('mod' => '10', 'rm' => '111'),
 );
 
 function to_immediate($n)
@@ -173,19 +171,6 @@ function parse_gr($opd)
 		if (empty($o[$OPD_TYPE['REG']]))
 			return FALSE;
 
-		if (in_array($o[$REG['KEY']], array(
-			$REG['AX'], $REG['DX'], 
-			$REG['CX'], $REG['BX'],
-			$REG['SI'], $REG['DI'], 
-			$REG['BP'], $REG['SP'])))
-		{
-			$o['size'] = 'w';
-		}
-		else
-		{
-			$o['size'] = 'b';
-		}
-
 		return $o;
 	}
 	return FALSE;	
@@ -239,4 +224,4 @@ function parse_operand($opd)
 	return $o;
 }
 
-var_dump(parse_operand($argv[1]));
+//var_dump(parse_operand($argv[1]));
