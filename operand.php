@@ -3,8 +3,8 @@ error_reporting(E_ALL);
 
 $OPD_TYPE = array(
 	'REG' => 'REG',
-	'SEGREG' => 'SEGREG',
-	'IMMEDIATE' => 'IMMEDIATE',
+	'SEG' => 'SEG',
+	'IMM' => 'IMM',
 	'MEM' => 'MEM',
 );
 
@@ -31,7 +31,7 @@ $REG = array(
 	'BH' => array('reg' => '111', 'mod' => '11', 'rm' => '111', 'w' => '0'),
 );
 
-$SEGREG = array(
+$SEG = array(
 	'DS' => array('sr' => '11'),
 	'ES' => array('sr' => '00'),
 	'SS' => array('sr' => '10'),
@@ -68,6 +68,25 @@ $MEM = array(
 	'BX_D16' => array('mod' => '10', 'rm' => '111'),
 );
 
+function to_binary($number, $n) 
+{
+	$ret = '';
+	$number = intval($number);
+	for($i = 0; $i < $n; $i++) {
+		$ret = ($number % 2) . $ret;
+		$number /=  2;
+	}
+	return $ret;
+}
+
+function to_bin8($number) {
+	return to_binary($number, 8);
+}
+function to_bin16($number) {
+	$ret = to_binary($number, 16);
+	$ret = substr($ret, 8, 8) . substr($ret, 0, 8);
+	return $ret;
+}
 function to_immediate($n)
 {
 	static $c2n = array(
@@ -163,65 +182,128 @@ function to_immediate($n)
 
 function parse_gr($opd)
 {
-	global $OPD_TYPE, $REG, $SEGREG;
+	global $REG;
+	$o = array();
 
-	if ($opd[0] == '%' && strlen($opd) == 3) {
-		$o[$OPD_TYPE['REG']] = $REG[strtoupper(substr($opd, 1, 2))];
-		
-		if (empty($o[$OPD_TYPE['REG']]))
-			return FALSE;
+	if (!($opd[0] == '%' && strlen($opd) == 3))
+		return FALSE;
 
-		return $o;
+	$name = strtoupper(substr($opd,1,2));
+	if (empty($REG[$name]))
+		return FALSE;
+
+	$o = $REG[$name];
+	$o['name'] = $name;
+	$o['type'] = 'REG';
+	return $o;
+}
+
+function parse_seg($opd) {
+	global $SEG;
+	if (!($opd[0] == '@' && strlen($opd) == 3))
+		return FALSE;
+
+	$name = strtoupper(substr($opd, 1, 2));
+	
+	if (empty($SEG[$name])) 
+		return FALSE;
+	
+	$o = $SEG[$name];
+	$o['name'] = $name;
+	$o['type'] = 'SEG';
+	return $o;
+}
+
+function parse_imm($opd) {
+	if (!($opd[0] == '#'))
+		return FALSE;
+
+	$o['name'] = substr($opd, 1);
+	$o['imm'] = to_immediate($o['name']);
+	if(empty($o['imm']))
+		return FALSE;
+
+	$o['type'] = 'IMM';
+	return $o;
+}
+
+function parse_mem($opd) {
+	global $MEM;
+
+	if (!($opd[0] == '[' && $opd[strlen($opd)-1] == ']'))
+		return FALSE;
+
+	$disp = '';
+	$m = explode('+', substr($opd, 1, -1));
+	$k = array();
+	for ($i = 0; $i < count($m); $i++) {
+		if (trim($m[$i])) {
+			$m[$i] = trim($m[$i]);
+			if ($m[$i][0] == '%') {
+				$k[] = strtoupper(substr($m[$i], 1));
+			} elseif($m[$i][0] == '#') {
+				$disp = to_immediate(substr($m[$i],1));
+				if ($i == 0) {
+					$k[] = 'DIRECT';
+					$disp = to_bin16($disp);
+				} else {
+					$k[] = $disp < 256 ? 'D8' : 'D16';
+					$disp = ($disp < 256 ? to_bin8($disp) : to_bin16($disp));
+				}
+			} else {
+					$k[] = 'ERROR';
+			}
+		}
 	}
-	return FALSE;	
+	$name = implode('_', $k);
+	
+	if (empty($MEM[$name])) return FALSE;
+
+	$o = $MEM[$name];
+	$o['disp'] = $disp;
+	$o['type'] = 'MEM';
+	$o['name'] = $name;
+	return $o;
+
 }
 
 function parse_operand($opd)
 {
-	global $OPD_TYPE, $REG, $SEGREG, $MEM;
-
 	$o = array();
 
 	if ($opd[0] == '%') {
 		$o = parse_gr($opd);	
-
 	} elseif ($opd[0] == '@' && strlen($opd) == 3) {
-		$o[$OPD_TYPE['SEGREG']] = $SEGREG[strtoupper(substr($opd, 1, 2))];
-		if ($o[$OPD_TYPE['SEGREG']]) 
-			$o['type'] = $OPD_TYPE['SEGREG'];
-
+		$o = parse_seg($opd);
 	} elseif ($opd[0] == '#') {
-		$o[$OPD_TYPE['IMMEDIATE']] = to_immediate(substr($opd, 1));
-		if ($o[$OPD_TYPE['IMMEDIATE']])
-			$o['type'] = $OPD_TYPE['IMMEDIATE'];
-
+		$o = parse_imm($opd);
 	} elseif ($opd[0] == '[' && $opd[strlen($opd)-1] == ']') {
-		$m = explode('+', substr($opd, 1, -1));
-		$k = array();
-		for ($i = 0; $i < count($m); $i++) {
-			if (trim($m[$i])) {
-				$m[$i] = trim($m[$i]);
-				if ($m[$i][0] == '%') {
-					$k[] = strtoupper(substr($m[$i], 1));
-				} elseif($m[$i][0] == '#') {
-					if ($i == 0) {
-						$k[] = 'DIRECT';
-					} else {
-						$k[] = to_immediate(substr($m[$i],1)) < 256 ? 'D8' : 'D16';
-					}
-				} else {
-					$k[] = 'ERROR';
-				}
-			}
-		}
-		$k = implode('_', $k);
-		$o[$OPD_TYPE['MEM']] = @$MEM[$k];
-		if ($o[$OPD_TYPE['MEM']]) {
-			$o['type'] = $OPD_TYPE['MEM'];
-		}
+		$o = parse_mem($opd);
 	}
 
 	return $o;
 }
+
+function is_seg($opd) {
+	return $opd['type'] == 'SEG';
+}
+function is_reg($opd) {
+	return $opd['type'] == 'REG';
+}
+function is_imm($opd) {
+	return $opd['type'] == 'IMM';
+}
+function is_rm($opd) {
+	return ($opd['type'] == 'MEM' || $opd['type'] == 'REG');
+}
+function is_accumulator($opd) {
+	return ($opd['type'] == 'REG' && 
+		in_array($opd['name'],array('AX','AL','AH')));
+
+}
+function is_direct($opd) {
+	return ($opd['type'] == 'MEM' && $opd['name'] == 'DIRECT'); 
+}
+
 
 //var_dump(parse_operand($argv[1]));
