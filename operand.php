@@ -3,7 +3,7 @@ error_reporting(E_ALL);
 
 $OPD_TYPE = array(
 	'REG' => 'REG',
-	'SEG' => 'SEG',
+	'SR' => 'SR',
 	'IMM' => 'IMM',
 	'MEM' => 'MEM',
 );
@@ -31,7 +31,7 @@ $REG = array(
 	'BH' => array('reg' => '111', 'mod' => '11', 'rm' => '111', 'w' => '0'),
 );
 
-$SEG = array(
+$SR = array(
 	'DS' => array('sr' => '11'),
 	'ES' => array('sr' => '00'),
 	'SS' => array('sr' => '10'),
@@ -198,19 +198,19 @@ function parse_gr($opd)
 	return $o;
 }
 
-function parse_seg($opd) {
-	global $SEG;
+function parse_sr($opd) {
+	global $SR;
 	if (!($opd[0] == '@' && strlen($opd) == 3))
 		return FALSE;
 
 	$name = strtoupper(substr($opd, 1, 2));
 	
-	if (empty($SEG[$name])) 
+	if (empty($SR[$name])) 
 		return FALSE;
 	
-	$o = $SEG[$name];
+	$o = $SR[$name];
 	$o['name'] = $name;
-	$o['type'] = 'SEG';
+	$o['type'] = 'SR';
 	return $o;
 }
 
@@ -269,12 +269,14 @@ function parse_mem($opd) {
 
 function parse_operand($opd)
 {
+	if (!$opd) return FALSE;
+
 	$o = array();
 
 	if ($opd[0] == '%') {
 		$o = parse_gr($opd);	
 	} elseif ($opd[0] == '@' && strlen($opd) == 3) {
-		$o = parse_seg($opd);
+		$o = parse_sr($opd);
 	} elseif ($opd[0] == '#') {
 		$o = parse_imm($opd);
 	} elseif ($opd[0] == '[' && $opd[strlen($opd)-1] == ']') {
@@ -284,8 +286,8 @@ function parse_operand($opd)
 	return $o;
 }
 
-function is_seg($opd) {
-	return $opd['type'] == 'SEG';
+function is_sr($opd) {
+	return $opd['type'] == 'SR';
 }
 function is_reg($opd) {
 	return $opd['type'] == 'REG';
@@ -300,6 +302,9 @@ function is_accumulator($opd) {
 	return ($opd['type'] == 'REG' && 
 		in_array($opd['name'],array('AX','AL','AH')));
 
+}
+function is_ax($opd) {
+	return ($opd['type'] == 'REG') && $opd['name'] == 'AX';
 }
 function is_direct($opd) {
 	return ($opd['type'] == 'MEM' && $opd['name'] == 'DIRECT'); 
