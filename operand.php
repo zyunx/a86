@@ -286,6 +286,9 @@ function parse_operand($opd)
 	return $o;
 }
 
+function is_empty($opd) {
+	return empty($opd);
+}
 function is_sr($opd) {
 	return $opd['type'] == 'SR';
 }
