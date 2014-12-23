@@ -20,6 +20,19 @@ $PARSE_FUNC = array(
 	'parse_inc',
 	'parse_aaa',
 	'parse_daa',
+	'parse_sub',
+	'parse_sbb',
+	'parse_dec',
+	'parse_cmp',
+	'parse_aas',
+	'parse_das',
+	'parse_mul',
+	'parse_imul',
+	'parse_aam',
+	'parse_div',
+	'parse_idiv',
+	'parse_cbw',
+	'parse_cwd',
 );
 
 
@@ -51,11 +64,249 @@ $MEMONIC = array(
 	'INCB' => array('INC', 0),
 	'AAA' => array('AAA', 1),
 	'DAA' => array('DAA', 1),
+	'SUBW' => array('SUB', 1),
+	'SUBB' => array('SUB', 0),
+	'SBBW' => array('SBB', 1),
+	'SBBB' => array('SBB', 0),
+	'DECW' => array('DEC', 1),
+	'DECB' => array('DEC', 0),
+	'NEGW' => array('NEG', 1),
+	'NEGB' => array('NEG', 0),
+	'CMPW' => array('CMP', 1),
+	'CMPB' => array('CMP', 0),
+	'AAS' => array('AAS', 1),
+	'DAS' => array('DAS', 1),
+	'MULW' => array('MUL', 1),
+	'MULB' => array('MUL', 0),
+	'IMULW' => array('IMUL', 1),
+	'IMULB' => array('IMUL', 0),
+	'AAM' => array('AAM', 1),
+	'DIVW' => array('DIV', 1),
+	'DIVB' => array('DIV', 0),
+	'IDIVW' => array('IDIV', 1),
+	'IDIVB' => array('IDIV', 0),
+	'AAD' => array('AAD', 1),
+	'CBW' => array('CBW', 1),
+	'CWD' => array('CWD', 1),
 );
 
 function parse_example($memonic, $dest, $src) {
 	if ($memonic['type'] != 'EXM') return FALSE;
 }
+
+function parse_cwd($memonic, $dest, $src) {
+	if ($memonic['type'] != 'CWD') return FALSE;
+
+	if (is_empty($dest) && is_empty($src)) {
+		return '10011001';
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_cbw($memonic, $dest, $src) {
+	if ($memonic['type'] != 'CBW') return FALSE;
+
+	if (is_empty($dest) && is_empty($src)) {
+		return '10011000';
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_aad($memonic, $dest, $src) {
+	if ($memonic['type'] != 'AAD') return FALSE;
+
+	if (is_empty($dest) && is_empty($src)) {
+		return '1101010100001010';
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_idiv($memonic, $dest, $src) {
+	if ($memonic['type'] != 'IDIV') return FALSE;
+
+	if (is_rm($dest) && is_empty($src)) {
+		return '1111011' . $dest['w']
+			. $dest['mod'] . '111' . $dest['rm']
+			. $dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+function parse_div($memonic, $dest, $src) {
+	if ($memonic['type'] != 'DIV') return FALSE;
+
+	if (is_rm($dest) && is_empty($src)) {
+		return '1111011' . $dest['w']
+			. $dest['mod'] . '110' . $dest['rm']
+			. @$dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_aam($memonic, $dest, $src) {
+	if ($memonic['type'] != 'AAM') return FALSE;
+
+	if (is_empty($dest) && is_empty($src)) {
+		return '1101010000001010';
+	} else {
+		return FALSE;
+	}
+}
+
+function parse_imul($memonic, $dest, $src) {
+	if ($memonic['type'] != 'IMUL') return FALSE;
+
+	if (is_rm($dest) && is_empty($src)) {
+		return '1111011' . $dest['w']
+			. $dest['mod'] . '101' . $dest['rm']
+			. $dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+function parse_mul($memonic, $dest, $src) {
+	if ($memonic['type'] != 'MUL') return FALSE;
+
+	if (is_rm($dest) && is_empty($src)) {
+		return '1111011' . $dest['w']
+			. $dest['mod'] . '100' . $dest['rm']
+			. $dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_das($memonic, $dest, $src) {
+	if ($memonic['type'] != 'DAS') return FALSE;
+
+	return '00101111';
+}
+
+
+function parse_aas($memonic, $dest, $src) {
+	if ($memonic['type'] != 'AAS') return FALSE;
+
+	return '00111111';
+}
+
+function parse_cmp($memonic, $dest, $src) {
+	if ($memonic['type'] != 'CMP') return FALSE;
+
+	if (is_accumulator($dest) && is_imm($src)) {
+		return '0011110' . $memonic['w']
+			. ($memonic['w'] ? 
+					to_bin16($src['imm']) :
+					to_bin8($src['imm']));
+	} elseif (is_rm($dest) && is_imm($src)) {
+		return '1000000' . $memonic['w']
+			. $dest['mod'] . '111' . $dest['rm']
+			. $dest['disp']
+			. to_bin16($src['imm']);
+	} elseif (is_rm($dest) && is_reg($src)) {
+		return '0011100' . $memonic['w']
+				. $dest['mod'] . $src['reg'] . $dest['rm']
+				. $dest['disp'];
+	} elseif (is_reg($dest) && is_rm($src)) {
+		return '0011101' . $memonic['w']
+				. $src['mod'] . $dest['reg'] . $src['rm']
+				. $src['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+
+function parse_neg($memonic, $dest, $src) {
+	if($memonic['type'] != 'NEG') return FALSE;
+
+	if(is_rm($dest) && is_empty($src)) {
+		return '1111011' . $memonic['w']
+			. $dest['mod'] . 011 . $dest['rm']
+			. $dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+function parse_dec($memonic, $dest, $src) {
+	if ($memonic['type'] != 'DEC') return FALSE;
+
+	if (is_reg($dest) && is_empty($src)) {
+		return '01001' . $dest['reg'];
+	} elseif(is_rm($dest) && is_empty($src)) {
+		return '1111111' . $memonic['w']
+			. $dest['mod'] . '001' . $dest['rm']
+			. $dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+function parse_sbb($memonic, $dest, $src) {
+	if ($memonic['type'] != 'SBB') return FALSE;
+
+	if (is_accumulator($dest) && is_imm($src)) {
+		return '0001110' . $memonic['w']
+			. ($memonic['w'] ? 
+					to_bin16($src['imm']) :
+					to_bin8($src['imm']));
+	} elseif (is_rm($dest) && is_imm($src)) {
+		return '1000000' . $memonic['w']
+			. $dest['mod'] . '011' . $dest['rm']
+			. $dest['disp']
+			. to_bin16($src['imm']);
+	} elseif (is_rm($dest) && is_reg($src)) {
+		return '0010100' . $memonic['w']
+				. $dest['mod'] . $src['reg'] . $dest['rm']
+				. $dest['disp'];
+	} elseif (is_reg($dest) && is_rm($src)) {
+		return '0010101' . $memonic['w']
+				. $src['mod'] . $dest['reg'] . $src['rm']
+				. $src['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_sub($memonic, $dest, $src) {
+	if ($memonic['type'] != 'SUB') return FALSE;
+
+	if (is_accumulator($dest) && is_imm($src)) {
+		return '0010110' . $memonic['w']
+			. ($memonic['w'] ? 
+					to_bin16($src['imm']) :
+					to_bin8($src['imm']));
+	} elseif (is_rm($dest) && is_imm($src)) {
+		return '1000000' . $memonic['w']
+			. $dest['mod'] . '101' . $dest['rm']
+			. $dest['disp']
+			. to_bin16($src['imm']);
+	} elseif (is_rm($dest) && is_reg($src)) {
+		return '0010100' . $memonic['w']
+				. $dest['mod'] . $src['reg'] . $dest['rm']
+				. $dest['disp'];
+	} elseif (is_reg($dest) && is_rm($src)) {
+		return '0010101' . $memonic['w']
+				. $src['mod'] . $dest['reg'] . $src['rm']
+				. $src['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
 
 function parse_daa($memonic, $dest, $src) {
 	if ($memonic['type'] != 'DAA') return FALSE;
