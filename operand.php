@@ -298,6 +298,9 @@ function is_reg($opd) {
 function is_imm($opd) {
 	return $opd['type'] == 'IMM';
 }
+function is_imm_one($opd) {
+	return $opd['type'] == 'IMM' && $opd['imm'] == 1;
+}
 function is_rm($opd) {
 	return ($opd['type'] == 'MEM' || $opd['type'] == 'REG');
 }

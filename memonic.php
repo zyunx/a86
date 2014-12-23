@@ -33,6 +33,24 @@ $PARSE_FUNC = array(
 	'parse_idiv',
 	'parse_cbw',
 	'parse_cwd',
+	'parse_not',
+	'parse_shl',
+	'parse_shr',
+	'parse_sar',
+	'parse_rol',
+	'parse_ror',
+	'parse_rcl',
+	'parse_rcr',
+	'parse_and',
+	'parse_test',
+	'parse_or',
+	'parse_xor',
+	'parse_rep',
+	'parse_movs',
+	'parse_cmps',
+	'parse_scas',
+	'parse_lods',
+	'parse_stds',
 );
 
 
@@ -88,11 +106,343 @@ $MEMONIC = array(
 	'AAD' => array('AAD', 1),
 	'CBW' => array('CBW', 1),
 	'CWD' => array('CWD', 1),
+	'NOTW' => array('NOT', 1),
+	'NOTB' => array('NOT', 0),
+	'SHLW' => array('SHL', 1),
+	'SHLB' => array('SHL', 0),
+	'SALW' => array('SHL', 1),
+	'SALB' => array('SHL', 0),
+	'SARW' => array('SAR', 1),
+	'SARB' => array('SAR', 0),
+	'ROLW' => array('ROL', 1),
+	'ROLB' => array('ROL', 0),
+	'RORW' => array('ROR', 1),
+	'RORB' => array('ROR', 0),
+	'RCLW' => array('RCL', 1),
+	'RCLB' => array('RCL', 0),
+	'RCRW' => array('RCR', 1),
+	'RCRB' => array('RCR', 0),
+	'ANDW' => array('AND', 1),
+	'ANDB' => array('AND', 0),
+	'TESTW' => array('TEST', 1),
+	'TESTB' => array('TEST', 0),
+	'ORW' => array('OR', 1),
+	'ORB' => array('OR', 0),
+	'XORW' => array('XOR', 1),
+	'XORB' => array('XOR', 0),
+	'REPZ' => array('REP', 1),
+	'REPNZ' => array('REP', 0),
+	'MOVSW' => array('MOVS', 1),
+	'MOVSB' => array('MOVS', 0),
+	'CMPSW' => array('CMPS', 1),
+	'CMPSB' => array('CMPS', 0),
+	'SCASW' => array('SCAS', 1),
+	'SCASB' => array('SCAS', 0),
+	'LODSW' => array('LODS', 1),
+	'LODSB' => array('LODS', 0),
+	'STDSW' => array('STDS', 1),
+	'STDSB' => array('STDS', 0),
 );
 
 function parse_example($memonic, $dest, $src) {
 	if ($memonic['type'] != 'EXM') return FALSE;
 }
+
+function parse_stds($memonic, $dest, $src) {
+	if ($memonic['type'] != 'STDS') return FALSE;
+
+	if(is_empty($dest) && is_empty($src)) {
+		return '1010101' . $memonic['w'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_lods($memonic, $dest, $src) {
+	if ($memonic['type'] != 'LODS') return FALSE;
+
+	if(is_empty($dest) && is_empty($src)) {
+		return '1010110' . $memonic['w'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_scas($memonic, $dest, $src) {
+	if ($memonic['type'] != 'SCAS') return FALSE;
+
+	if(is_empty($dest) && is_empty($src)) {
+		return '1010111' . $memonic['w'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_cmps($memonic, $dest, $src) {
+	if ($memonic['type'] != 'CMPS') return FALSE;
+
+	if(is_empty($dest) && is_empty($src)) {
+		return '1010011' . $memonic['w'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_movs($memonic, $dest, $src) {
+	if ($memonic['type'] != 'MOVS') return FALSE;
+
+	if(is_empty($dest) && is_empty($src)) {
+		return '1010010' . $memonic['w'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_rep($memonic, $dest, $src) {
+	if ($memonic['type'] != 'REP') return FALSE;
+
+	if(is_empty($dest) && is_empty($src)) {
+		return '1111001' . $memonic['w'];
+	} else {
+		return FALSE;
+	}
+}
+
+function parse_xor($memonic, $dest, $src) {
+	if ($memonic['type'] != 'XOR') return FALSE;
+	
+	if (is_accumulator($dest) && is_imm($src)) {
+		return '0011010' . $memonic['w']
+			. ($memonic['w'] ? to_bin16($src['imm']) : to_bin8($src['imm']));
+	} elseif (is_rm($dest) && is_imm($src)) {
+		return '0011010' . $memonic['w']
+			. $dest['mod'] . '100' . $dest['rm']
+			. @$dest['disp']
+			. ($memonic['w'] ? to_bin16($src['imm']) : to_bin8($src['imm']));
+	} elseif (is_rm($dest) && is_reg($src)) {
+		return '0011000' . $memonic['w']
+			. $dest['mod'] . $src['reg'] . $dest['rm']
+			. @$dest['disp'];
+	} elseif (is_reg($dest) && is_rm($src)) {
+		return '0011001' . $memonic['w']
+			. $src['mod'] . $dest['reg'] . $src['rm']
+			. @$src['disp'];
+	} else {
+		return FALSE;
+	} 
+}
+
+
+function parse_or($memonic, $dest, $src) {
+	if ($memonic['type'] != 'OR') return FALSE;
+	
+	if (is_accumulator($dest) && is_imm($src)) {
+		return '0000110' . $memonic['w']
+			. ($memonic['w'] ? to_bin16($src['imm']) : to_bin8($src['imm']));
+	} elseif (is_rm($dest) && is_imm($src)) {
+		return '1000000' . $memonic['w']
+			. $dest['mod'] . '001' . $dest['rm']
+			. @$dest['disp']
+			. ($memonic['w'] ? to_bin16($src['imm']) : to_bin8($src['imm']));
+	} elseif (is_rm($dest) && is_reg($src)) {
+		return '0000100' . $memonic['w']
+			. $dest['mod'] . $src['reg'] . $dest['rm']
+			. @$dest['disp'];
+	} elseif (is_reg($dest) && is_rm($src)) {
+		return '0000101' . $memonic['w']
+			. $src['mod'] . $dest['reg'] . $src['rm']
+			. @$src['disp'];
+	} else {
+		return FALSE;
+	} 
+}
+
+
+function parse_test($memonic, $dest, $src) {
+	if ($memonic['type'] != 'TEST') return FALSE;
+	
+	if (is_accumulator($dest) && is_imm($src)) {
+		return '1010100' . $memonic['w']
+			. ($memonic['w'] ? to_bin16($src['imm']) : to_bin8($src['imm']));
+	} elseif (is_rm($dest) && is_imm($src)) {
+		return '1111011' . $memonic['w']
+			. $dest['mod'] . '100' . $dest['rm']
+			. @$dest['disp']
+			. ($memonic['w'] ? to_bin16($src['imm']) : to_bin8($src['imm']));
+	} elseif (is_rm($dest) && is_reg($src)) {
+		return '0001000' . $memonic['w']
+			. $dest['mod'] . $src['reg'] . $dest['rm']
+			. @$dest['disp'];
+	} elseif (is_reg($dest) && is_rm($src)) {
+		return '0001001' . $memonic['w']
+			. $src['mod'] . $dest['reg'] . $src['rm']
+			. @$src['disp'];
+	} else {
+		return FALSE;
+	} 
+}
+
+
+function parse_and($memonic, $dest, $src) {
+	if ($memonic['type'] != 'AND') return FALSE;
+	
+	if (is_accumulator($dest) && is_imm($src)) {
+		return '0010010' . $memonic['w']
+			. ($memonic['w'] ? to_bin16($src['imm']) : to_bin8($src['imm']));
+	} elseif (is_rm($dest) && is_imm($src)) {
+		return '1000000' . $memonic['w']
+			. $dest['mod'] . '100' . $dest['rm']
+			. @$dest['disp']
+			. ($memonic['w'] ? to_bin16($src['imm']) : to_bin8($src['imm']));
+	} elseif (is_rm($dest) && is_reg($src)) {
+		return '0010000' . $memonic['w']
+			. $dest['mod'] . $src['reg'] . $dest['rm']
+			. @$dest['disp'];
+	} elseif (is_reg($dest) && is_rm($src)) {
+		return '0010001' . $memonic['w']
+			. $src['mod'] . $dest['reg'] . $src['rm']
+			. @$src['disp'];
+	} else {
+		return FALSE;
+	} 
+}
+
+
+function parse_rcr($memonic, $dest, $src) {
+	if ($memonic['type'] != 'RCR') return FALSE;
+
+	if (is_rm($dest) && is_imm_one($src)) {
+		return '1101000' . $memonic['w']
+			. $dest['mod'] . '011' . $dest['rm']
+			. @$dest['disp'];
+	} else if(is_rm($dest) && is_empty($src)) {
+		return '1101001' . $memonic['w']
+			. $dest['mod'] . '011' . $dest['rm']
+			. @$dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_rcl($memonic, $dest, $src) {
+	if ($memonic['type'] != 'RCL') return FALSE;
+
+	if (is_rm($dest) && is_imm_one($src)) {
+		return '1101000' . $memonic['w']
+			. $dest['mod'] . '010' . $dest['rm']
+			. @$dest['disp'];
+	} else if(is_rm($dest) && is_empty($src)) {
+		return '1101001' . $memonic['w']
+			. $dest['mod'] . '010' . $dest['rm']
+			. @$dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_ror($memonic, $dest, $src) {
+	if ($memonic['type'] != 'ROR') return FALSE;
+
+	if (is_rm($dest) && is_imm_one($src)) {
+		return '1101000' . $memonic['w']
+			. $dest['mod'] . '001' . $dest['rm']
+			. @$dest['disp'];
+	} else if(is_rm($dest) && is_empty($src)) {
+		return '1101001' . $memonic['w']
+			. $dest['mod'] . '001' . $dest['rm']
+			. @$dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_rol($memonic, $dest, $src) {
+	if ($memonic['type'] != 'ROL') return FALSE;
+
+	if (is_rm($dest) && is_imm_one($src)) {
+		return '1101000' . $memonic['w']
+			. $dest['mod'] . '000' . $dest['rm']
+			. @$dest['disp'];
+	} else if(is_rm($dest) && is_empty($src)) {
+		return '1101001' . $memonic['w']
+			. $dest['mod'] . '000' . $dest['rm']
+			. @$dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+function parse_sar($memonic, $dest, $src) {
+	if ($memonic['type'] != 'SAR') return FALSE;
+
+	if (is_rm($dest) && is_imm_one($src)) {
+		return '1101000' . $memonic['w']
+			. $dest['mod'] . '111' . $dest['rm']
+			. @$dest['disp'];
+	} else if(is_rm($dest) && is_empty($src)) {
+		return '1101001' . $memonic['w']
+			. $dest['mod'] . '111' . $dest['rm']
+			. @$dest['disp'];
+	} else {
+		return FALSE;
+	}	
+}
+
+
+function parse_shr($memonic, $dest, $src) {
+	if ($memonic['type'] != 'SHR') return FALSE;
+
+	if (is_rm($dest) && is_imm_one($src)) {
+		return '1101000' . $memonic['w']
+			. $dest['mod'] . '100' . $dest['rm']
+			. @$dest['disp'];
+	} else if(is_rm($dest) && is_empty($src)) {
+		return '1101001' . $memonic['w']
+			. $dest['mod'] . '101' . $dest['rm']
+			. @$dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_shl($memonic, $dest, $src) {
+	if ($memonic['type'] != 'SHL') return FALSE;
+
+	if (is_rm($dest) && is_imm_one($src)) {
+		return '1101000' . $memonic['w']
+			. $dest['mod'] . '100' . $dest['rm']
+			. @$dest['disp'];
+	} else if(is_rm($dest) && is_empty($src)) {
+		return '1101001' . $memonic['w']
+			. $dest['mod'] . '100' . $dest['rm']
+			. @$dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_not($memonic, $dest, $src) {
+	if ($memonic['type'] != 'NOT') return FALSE;
+
+	if (is_rm($dest) && is_empty($src)) {
+		return '1111011' . $memonic['w']
+			. $dest['mod'] . '010' . $dest['rm']
+			. @$dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
 
 function parse_cwd($memonic, $dest, $src) {
 	if ($memonic['type'] != 'CWD') return FALSE;
