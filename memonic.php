@@ -51,6 +51,14 @@ $PARSE_FUNC = array(
 	'parse_scas',
 	'parse_lods',
 	'parse_stds',
+	'parse_call',
+	'parse_jmp',
+	'parse_ret',
+	'parse_conditional_jmp',
+	'parse_cx_jmp',
+	'parse_int',
+	'parse_trival_memonic',
+	'parse_segment',
 );
 
 
@@ -142,11 +150,211 @@ $MEMONIC = array(
 	'LODSB' => array('LODS', 0),
 	'STDSW' => array('STDS', 1),
 	'STDSB' => array('STDS', 0),
+	'CALL' => array('CALL', 1),
+	'JMP' => array('JMP', 1),
+	'RET' => array('RET', 1),
+	'JE' => array('JE', 1),
+	'JZ' => array('JE', 1),
+	'JL' => array('JL', 1),
+	'JNGE' => array('JL', 1),
+	'JLE' => array('JLE', 1),
+	'JNG' => array('JLE', 1),
+	'JB' => array('JB', 1),
+	'JNAE' => array('JB', 1),
+	'JBE' => array('JBE', 1),
+	'JNA' => array('JBE', 1),
+	'JP' => array('JP', 1),
+	'JPE' => array('JP', 1),
+	'JO' => array('JO', 1),
+	'JS' => array('JS', 1),
+	'JNE' => array('JNE', 1),
+	'JNZ' => array('JNE', 1),
+	'JNL' => array('JNL', 1),
+	'JGE' => array('JNL' ,1),
+	'JNLE' => array('JNLE', 1),
+	'JG' => array('JNLE', 1),
+	'JNB' => array('JNB', 1),
+	'JAE' => array('JNB', 1),
+	'JNBE' => array('JNBE', 1),
+	'JA' => array('JNBE', 1),
+	'JNP' => array('JNP', 1),
+	'JPO' => array('JNP', 1),
+	'JNO' => array('JNO', 1),
+	'JNS' => array('JNS', 1),
+	'LOOP' => array('LOOP' , 1),
+	'LOOPZ' => array('LOOPZ', 1),
+	'LOOPE' => array('LOOPE', 1),
+	'LOOPNZ' => array('LOOPNZ', 1),
+	'LOOPNE' => array('LOOPNE', 1),
+	'JCXZ' => array('JCXZ', 1),
+	'INT' => array('INT', 1),
+	'INTO' => array('INTO', 1),
+	'IRET' => array('IRET', 1),
+	'CLC' => array('CLC', 1),
+	'CMC' => array('CMC', 1),
+	'STC' => array('STC', 1),
+	'CLD' => array('CLD', 1),
+	'STD' => array('STD', 1),
+	'CLI' => array('CLI', 1),
+	'STI' => array('STI', 1),
+	'HLT' => array('HLT', 1),
+	'WAIT' => array('WAIT', 1),
+	'ESC' => array('ESC', 1),
+	'LOCK' => array('LOCK', 1),
+	'SEGMENT' => array('SEGMENT', 1),
 );
 
-function parse_example($memonic, $dest, $src) {
-	if ($memonic['type'] != 'EXM') return FALSE;
+function parse_segment($memonic, $dest, $src) {
+	if ($memonic['type'] != 'SEGMENT') return FALSE;
+
+	if (is_sr($dest) && is_empty($src)) {
+		return '001' . $dest['sr'] . '110';
+	} else {
+		return FALSE;
+	}
 }
+
+$TRIVAL_MEMONIC = array(
+	'INTO' => '11001110',
+	'IRET' => '11001111',
+	'CLC' => '11111000',
+	'CMC' => '11110101',
+	'STC' => '11111001',
+	'CLD' => '11111100',
+	'STD' => '11111101',
+	'CLI' => '11111010',
+	'STI' => '11111011',
+	'HLT' => '11110100',
+	'WAIT' => '10011011',
+	'ESC' => FALSE,
+	'LOCK' => '11110000',
+);
+function parse_trival_memonic($memonic, $dest, $src) {
+	global $TRIVAL_MEMONIC;
+	if (!in_array($memonic['type'], array_keys($TRIVAL_MEMONIC)))
+		return FALSE;
+
+	if (is_empty($dest) && is_empty($src)) {
+		return $TRIVAL_MEMONIC[$memonic['type']];
+	} else {
+		return FALSE;
+	}
+
+}
+
+function parse_int($memonic, $dest, $src) {
+	if ($memonic['type'] != 'INT') return FALSE;
+
+	if (is_imm_three($dest) && is_empty($src)) {
+		return '11001100';
+	} elseif (is_imm($dest) && is_empty($src)) {
+		return '11001101' . to_bin8($dest['imm']);
+	} else {
+		return FALSE;
+	}
+}
+
+
+$CX_JMP = array(
+	'LOOP' => '10',
+	'LOOPZ' => '01',
+	'LOOPNZ' => '00',
+	'JCXZ' => '11',
+);
+function parse_cx_jmp($memonic, $dest, $src) {
+	global $CX_JMP;
+	if (!in_array($memonic['type'], array_keys($CX_JMP)))
+		return FALSE;
+
+	if (is_imm($dest) && is_empty($src)) {
+		return '111000' . $CX_JMP[$memonic['type']] 
+			. to_bin8($dest['imm']);
+	} else {
+		return FALSE;
+	}
+}
+
+$CONDITIONAL_JMP = array(
+	'JE' => '0100',
+	'JL' => '1100',
+	'JLE' => '1110',
+	'JB' => '0010',
+	'JBE' => '0110',
+	'JP' => '1010',
+	'JO' => '0000',
+	'JS' => '1000',
+	'JNE' => '0101',
+	'JNL' => '1101',
+	'JNLE' => '1111',
+	'JNB' => '0011',
+	'JNBE' => '0111',
+	'JNP' => '1011',
+	'JNO' => '0001',
+	'JNS' => '1001',
+);
+function parse_conditional_jmp($memonic, $dest, $src) {
+	global $CONDITIONAL_JMP;
+	if (!in_array($memonic['type'], array_keys($CONDITIONAL_JMP)))
+		return FALSE;
+
+	if (is_imm($dest) && is_empty($src)) {
+		return '0111' . $CONDITIONAL_JMP[$memonic['type']] 
+			. to_bin8($dest['imm']);
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_ret($memonic, $dest, $src) {
+	// Intersegment ret is not to be supported.
+	if ($memonic['type'] != 'RET') return FALSE;
+
+	if (is_imm($dest) && is_empty($src)) {
+		return '11000010' . to_bin16($dest['imm']);
+	} elseif(is_empty($dest) && is_empty($src)) {
+		return '11000011';
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_jmp($memonic, $dest, $src) {
+	// Intersegment jmp is not to be supported.
+	if ($memonic['type'] != 'JMP') return FALSE;
+
+	if (is_imm($dest) && is_empty($src)) {
+		if ($dest['imm'] < 128 && $dest['imm'] >= -128) {
+			return '11101011' . to_bin8($dest['imm']);
+		} else {
+			return '11101001' . to_bin16($dest['imm']);
+		}
+	} elseif(is_rm($dest) && is_empty($src)) {
+		return '11111111'
+			. $dest['mod'] . '100' . $dest['rm']
+			. @$dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
+
+function parse_call($memonic, $dest, $src) {
+	// Intersegment call is not to be supported.
+	if ($memonic['type'] != 'CALL') return FALSE;
+
+	if (is_imm($dest) && is_empty($src)) {
+		return '11101000' . to_bin16($dest['imm']);
+	} elseif(is_rm($dest) && is_empty($src)) {
+		return '11111111'
+			. $dest['mod'] . '010' . $dest['rm']
+			. $dest['disp'];
+	} else {
+		return FALSE;
+	}
+}
+
 
 function parse_stds($memonic, $dest, $src) {
 	if ($memonic['type'] != 'STDS') return FALSE;
