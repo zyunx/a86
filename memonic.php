@@ -59,8 +59,14 @@ $PARSE_FUNC = array(
 	'parse_int',
 	'parse_trival_memonic',
 	'parse_segment',
+	'error_memonic'
 );
 
+function error_memonic($memonic, $dest, $src) {
+	fprintf(STDERR, "Invalid memonic: %s %s, %s\n",
+		$memonic['type'], $dest['type'], $src['type']);	
+	die;
+}
 
 $MEMONIC = array(
 	// memonic     type    w

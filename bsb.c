@@ -26,26 +26,40 @@ int main(int argc, char* argv[]) {
 	unsigned char current_byte = 0;
 	int index = 0;
 	int c;
+	int in_comment;
+	int count = 0;
 	while (EOF != (c = getchar())) {
+		if (in_comment) {
+			/* in comment */
+			if ('\n' == c) in_comment = 0;
+			continue;
+		}
+		
 		if (c == '0' || c == '1') {
 			current_byte = (current_byte << 1) + (c - '0');
 			index++;
 			if (index == 8) {
 				if (1 != fwrite(&current_byte, 1, 1, stdout)) {
 					fputs("IO Error\n", stderr);
+					exit(count);
 				}
+				count++;
 				index = 0;
 			}
+		} else if(c == '#') {
+			/* ignore comment*/
+			in_comment = 1;
 		} else if (!isspace(c)){
 			fputs("Only 0 and 1 are recognized.\n", stderr);
-			exit(EXIT_FAILURE);
+			exit(count);
 		}
 	}
 
 	if (index != 0) {
 		fputs("Expect more 0 and 1s.\n", stderr);
-		exit(EXIT_FAILURE);
+		exit(count);
 	}
 
+	fprintf(stderr, "Total %d bytes\n", count);
 	exit(EXIT_SUCCESS);
 }

@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
 	char *filename = argv[1];
 	FILE *fp;
 
-	if (NULL == (fp = fopen(filename, "w"))) {
+	if (NULL == (fp = fopen(filename, "r+"))) {
 		fprintf(stderr, "IO Error: open file %s\n", filename);
 		exit(EXIT_FAILURE);
 	}
