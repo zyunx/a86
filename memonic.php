@@ -942,7 +942,7 @@ function parse_add($memonic, $dest, $src) {
 	} elseif (is_rm($dest) && is_reg($src)) {
 		return '0000000' . $memonic['w']
 				. $dest['mod'] . $src['reg'] . $dest['rm']
-				. $dest['disp'];
+				. @$dest['disp'];
 	} elseif (is_reg($dest) && is_rm($src)) {
 		return '0000001' . $memonic['w']
 				. $src['mod'] . $dest['reg'] . $src['rm']

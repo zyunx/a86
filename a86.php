@@ -1,21 +1,29 @@
 #!/usr/local/bin/php
 <?php
 define('AS86_HOME', dirname(__FILE__));
+require_once AS86_HOME . '/global.php';
 require_once AS86_HOME . '/operand.php';
 require_once AS86_HOME . '/memonic.php';
 
-$current_position = 0;
-
 while ($line = fgets(STDIN))
 {
-	preg_match('/^\s*((\w+):)?\s*(\w+)\s*(([^;,]+)(,([^;]+))?)?' 
+	preg_match('/^\s*((\w+):)?\s*((\w+)\s*(([^;,]+)(,([^;]+))?))?' 
 		. '(;(.*))?\s*$/', $line, $m);
 	$label = isset($m[2]) ? trim($m[2]) : '';
-	$memonic = isset($m[3]) ? trim($m[3]) : '';
-	$dest = isset($m[5]) ? trim($m[5]) : '';
-	$src = isset($m[7]) ? trim($m[7]) : '';
-	$comment = isset($m[9]) ? trim($m[9]) : '';
-//var_dump(array($label, $memonic, $dest, $src, $comment));
+	$memonic = isset($m[4]) ? trim($m[4]) : '';
+	$dest = isset($m[6]) ? trim($m[6]) : '';
+	$src = isset($m[8]) ? trim($m[8]) : '';
+	$comment = isset($m[10]) ? trim($m[10]) : '';
+	var_dump(array($label, $memonic, $dest, $src, $comment));
+	
+	// add new label
+	if ($label) {
+		$label_array[$label] = $instruction_position;
+	}
+	// only label
+	if ($memonic == '' && $dest == '' && $src == '')
+		continue;
+
 	$memonic = parse_memonic($memonic);
 	$dest = parse_operand($dest);
 	$src = parse_operand($src);
@@ -24,10 +32,14 @@ while ($line = fgets(STDIN))
 	foreach($PARSE_FUNC as $pf) {
 		$r = $pf($memonic, $dest, $src);
 		if ($r) {
-			fprintf(STDIN, "%d: %s\n", $current_position, $r);
-			$current_position += strlen($r)/8;
+			fprintf(STDIN, "%d: %s\n", $instruction_position, $r);
+			
+			// increment instruction position
+			$instruction_position += strlen($r)/8;
 			break;
 		}
 	}
-	
+
 }
+
+var_dump($label_array);
